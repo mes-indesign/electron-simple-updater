@@ -1,6 +1,8 @@
 'use strict';
 
+const fs = require('fs').promises;
 const semver = require('semver');
+const url = require('url');
 
 module.exports = {
   getUpdatesMeta,
@@ -20,12 +22,15 @@ module.exports = {
 async function getUpdatesMeta(httpClient, updatesUrl, build, channel, version) {
   const [platform, arch] = build.split('-');
 
-  const url = updatesUrl
+  const escapedUrl = updatesUrl
     .replace('{platform}', platform)
     .replace('{arch}', arch)
     .replace('{channel}', channel);
 
-  const json = await httpClient.getJson(url);
+  const protocol = (new URL(escapedUrl)).protocol;
+  console.log(`getUpdatesMeta protocol=${protocol} path=${url.fileURLToPath(escapedUrl)}`);
+  const json = (protocol === 'file:') ?
+    await fs.readFile(url.fileURLToPath(escapedUrl)) : await httpClient.getJson(escapedUrl);
   return extractUpdateMeta(json, build, channel, version);
 }
 
